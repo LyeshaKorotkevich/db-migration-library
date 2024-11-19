@@ -1,0 +1,27 @@
+plugins {
+    id 'java'
+    id 'io.freefair.lombok' version '8.3'
+}
+
+group = 'eu.innowise'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.zaxxer:HikariCP:4.0.3'
+    runtimeOnly 'org.postgresql:postgresql:42.7.3'
+
+    implementation 'commons-codec:commons-codec:1.15'
+
+    implementation 'org.slf4j:slf4j-api:2.0.7'
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}
