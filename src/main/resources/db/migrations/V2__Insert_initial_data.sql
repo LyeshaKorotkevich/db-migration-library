@@ -11,7 +11,7 @@ INSERT INTO User_Project (user_id, project_id) VALUES
 (101, 102),
 (102, 102);
 
-INSERT INTO Tasks (user_id, project_id, title, description, priority, status, due_date) VALUES
-(101, 101, 'Learn SQL', 'Study SQL.', 'high', 'current', '2024-11-18 12:00:00'),
-(101, 102, 'Create task', 'Create task', 'medium', 'current', '2024-11-19 18:52:52'),
-(102, 102, 'Assign task', 'Assign task', 'low', 'completed', '2024-11-15 09:02:02');
+INSERT INTO Tasks (user_id, project_id, title, description, due_date) VALUES
+(101, 101, 'Learn SQL', 'Study SQL.', '2024-11-18 12:00:00'),
+(101, 102, 'Create task', 'Create task', '2024-11-19 18:52:52'),
+(102, 102, 'Assign task', 'Assign task', '2024-11-15 09:02:02');

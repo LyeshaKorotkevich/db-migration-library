@@ -13,22 +13,30 @@ import java.util.List;
 public class MigrationTool {
 
     public static void main(String[] args) {
-        System.out.println("Starting migrations...");
+        log.info("Starting migrations...");
+
         MigrationFileReader fileReader = new MigrationFileReader();
         MigrationManager migrationManager = new MigrationManager(fileReader);
-        MigrationExecutor migrationExecutor = new MigrationExecutor(fileReader, migrationManager);
+        MigrationExecutor migrationExecutor = new MigrationExecutor(fileReader);
+
         try {
+            log.debug("Ensuring metadata table exists...");
             migrationManager.ensureMetadataTableExists();
+            log.info("Metadata table check/creation completed successfully.");
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            log.error("Failed to ensure metadata table exists.", e);
+            throw new RuntimeException("Error ensuring metadata table exists.", e);
         }
 
         List<Path> migrations = migrationManager.getPendingMigrations();
-        System.out.println("Found migrations: " + migrations);
+        log.info("Found {} pending migrations: {}", migrations.size(), migrations);
 
-        for(Path migration: migrations) {
-            migrationExecutor.executeMigration(migration);
+        if (!migrations.isEmpty()) {
+            migrationExecutor.executeMigrations(migrations);
+        } else {
+            log.info("No pending migrations found.");
         }
-        System.out.println("Migrations completed successfully.");
+
+        log.info("Migrations completed successfully.");
     }
 }
