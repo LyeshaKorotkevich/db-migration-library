@@ -1,7 +1,8 @@
-package eu.innowise.utils;
+package eu.innowise.db;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import eu.innowise.utils.PropertiesUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;

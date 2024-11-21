@@ -1,5 +1,7 @@
 package eu.innowise.migration;
 
+import eu.innowise.utils.MigrationUtils;
+
 import java.nio.file.Path;
 import java.util.Comparator;
 
@@ -7,8 +9,8 @@ public class MigrationVersionComparator implements Comparator<Path> {
 
     @Override
     public int compare(Path path1, Path path2) {
-        String version1 = MigrationManager.extractVersionFromFilename(path1.getFileName().toString());
-        String version2 = MigrationManager.extractVersionFromFilename(path2.getFileName().toString());
+        String version1 = MigrationUtils.extractVersionFromFilename(path1.getFileName().toString());
+        String version2 = MigrationUtils.extractVersionFromFilename(path2.getFileName().toString());
         return compareVersions(version1, version2);
     }
 

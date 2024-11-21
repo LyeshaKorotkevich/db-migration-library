@@ -1,6 +1,6 @@
 package eu.innowise.migration;
 
-import eu.innowise.utils.ConnectionManager;
+import eu.innowise.db.ConnectionManager;
 import eu.innowise.utils.Constants;
 import eu.innowise.utils.MigrationUtils;
 import lombok.RequiredArgsConstructor;
@@ -51,8 +51,10 @@ public class MigrationExecutor {
     }
 
     private void executeSingleMigration(Connection connection, Path migrationFile) throws SQLException, IOException {
-        String description = migrationFile.getFileName().toString();
-        String version = MigrationManager.extractVersionFromFilename(description);
+        String filename = migrationFile.getFileName().toString();
+
+        String description = MigrationUtils.extractDescriptionFromFilename(filename);
+        String version = MigrationUtils.extractVersionFromFilename(filename);
         int checksum = MigrationUtils.calculateChecksum(migrationFile);
 
         log.info("Starting migration for file: {}", description);

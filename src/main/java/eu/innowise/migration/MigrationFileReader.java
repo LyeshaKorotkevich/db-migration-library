@@ -31,7 +31,7 @@ public class MigrationFileReader {
 
         try (Stream<Path> paths = Files.walk(Paths.get(resourceUrl.toURI()))) {
             List<Path> migrationFiles = paths.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".sql"))
+                    .filter(path -> path.toString().endsWith(Constants.SQL_EXTENSION))
                     .toList();
 
             log.info("Found {} migration files in folder: {}", migrationFiles.size(), migrationsPath);
@@ -44,7 +44,7 @@ public class MigrationFileReader {
 
     public List<String> parseSqlFile(Path file) throws IOException {
         String content = Files.readString(file, StandardCharsets.UTF_8);
-        return Stream.of(content.split(";"))
+        return Stream.of(content.split(Constants.SEMICOLON))
                 .map(String::trim)
                 .toList();
     }
