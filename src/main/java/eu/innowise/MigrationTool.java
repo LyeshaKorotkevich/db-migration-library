@@ -16,7 +16,7 @@ import java.util.List;
 @Slf4j
 public class MigrationTool {
 
-    public static void main(String[] args) {
+    public static void run() {
         log.info("Starting migrations...");
 
         String dbType = DatabaseUtils.getDatabaseType();

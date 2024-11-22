@@ -1,5 +1,6 @@
 plugins {
-    id 'java'
+    id 'java-library'
+    id 'maven-publish'
     id 'io.freefair.lombok' version '8.3'
 }
 
@@ -8,6 +9,20 @@ version = '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
+}
+
+publishing {
+    publications {
+        myLib(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            name = "localMaven"
+            url = uri("$rootDir/.m2/repository")
+        }
+    }
 }
 
 dependencies {
