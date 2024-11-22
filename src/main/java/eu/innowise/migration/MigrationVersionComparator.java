@@ -1,16 +1,15 @@
 package eu.innowise.migration;
 
-import eu.innowise.utils.MigrationUtils;
+import eu.innowise.model.Migration;
 
-import java.nio.file.Path;
 import java.util.Comparator;
 
-public class MigrationVersionComparator implements Comparator<Path> {
+public class MigrationVersionComparator implements Comparator<Migration> {
 
     @Override
-    public int compare(Path path1, Path path2) {
-        String version1 = MigrationUtils.extractVersionFromFilename(path1.getFileName().toString());
-        String version2 = MigrationUtils.extractVersionFromFilename(path2.getFileName().toString());
+    public int compare(Migration migration1, Migration migration2) {
+        String version1 = migration1.getVersion();
+        String version2 = migration2.getVersion();
         return compareVersions(version1, version2);
     }
 

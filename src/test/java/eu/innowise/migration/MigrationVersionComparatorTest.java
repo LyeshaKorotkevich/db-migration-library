@@ -1,9 +1,9 @@
 package eu.innowise.migration;
 
+import eu.innowise.model.Migration;
+import eu.innowise.utils.MigrationTestData;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,20 +14,115 @@ class MigrationVersionComparatorTest {
     private final MigrationVersionComparator comparator = new MigrationVersionComparator();
 
     @Test
-    void testSortMigrations() {
+    void testCompareEqualVersions() {
+        // given
+        Migration migration1 = MigrationTestData.builder().build().getMigration();
+        Migration migration2 = MigrationTestData.builder().build().getMigration();
 
-        List<Path> migrations = Arrays.asList(
-                Paths.get("V1.2__SecondMigration.sql"),
-                Paths.get("V1_10__ThirdMigration.sql"),
-                Paths.get("V2.0__FourthMigration.sql"),
-                Paths.get("V1__FirstMigration.sql")
+        // when
+        int result = comparator.compare(migration1, migration2);
+
+        // then
+        assertEquals(0, result, "Versions should be equal");
+    }
+
+    @Test
+    void testCompareFirstVersionSmaller() {
+        // given
+        Migration migration1 = MigrationTestData.builder()
+                .withVersion("1.0")
+                .build()
+                .getMigration();
+
+        Migration migration2 = MigrationTestData.builder()
+                .withVersion("1.1")
+                .build()
+                .getMigration();
+
+        // when
+        int result = comparator.compare(migration1, migration2);
+
+        // then
+        assertEquals(-1, result, "Version 1.0 should be smaller than 1.1");
+    }
+
+    @Test
+    void testCompareFirstVersionLarger() {
+        // given
+        Migration migration1 = MigrationTestData.builder()
+                .withVersion("2.0")
+                .build()
+                .getMigration();
+
+        Migration migration2 = MigrationTestData.builder()
+                .withVersion("1.9")
+                .build()
+                .getMigration();
+
+        // when
+        int result = comparator.compare(migration1, migration2);
+
+        // then
+        assertEquals(1, result, "Version 2.0 should be larger than 1.9");
+    }
+
+    @Test
+    void testCompareWithDifferentLengthVersions() {
+        // given
+        Migration migration1 = MigrationTestData.builder()
+                .withVersion("1.1")
+                .build()
+                .getMigration();
+
+        Migration migration2 = MigrationTestData.builder()
+                .withVersion("1")
+                .build()
+                .getMigration();
+
+        // when
+        int result = comparator.compare(migration1, migration2);
+
+        // then
+        assertEquals(1, result, "Version 1.0.1 should be larger than 1.0");
+    }
+
+    @Test
+    void testCompareWithTrailingZeros() {
+        // given
+        Migration migration1 = MigrationTestData.builder()
+                .withVersion("1")
+                .build()
+                .getMigration();
+
+        Migration migration2 = MigrationTestData.builder()
+                .withVersion("1.0")
+                .build()
+                .getMigration();
+
+        // when
+        int result = comparator.compare(migration1, migration2);
+
+        // then
+        assertEquals(-1, result, "Version 1 should be smaller than 1.0");
+    }
+
+    @Test
+    void testSortListOfMigrations() {
+        // given
+        List<Migration> migrations = Arrays.asList(
+                MigrationTestData.builder().withVersion("1.2").build().getMigration(),
+                MigrationTestData.builder().withVersion("1").build().getMigration(),
+                MigrationTestData.builder().withVersion("2.1").build().getMigration(),
+                MigrationTestData.builder().withVersion("2").build().getMigration()
         );
 
+        // when
         migrations.sort(comparator);
 
-        assertEquals("V1__FirstMigration.sql", migrations.get(0).getFileName().toString());
-        assertEquals("V1.2__SecondMigration.sql", migrations.get(1).getFileName().toString());
-        assertEquals("V1_10__ThirdMigration.sql", migrations.get(2).getFileName().toString());
-        assertEquals("V2.0__FourthMigration.sql", migrations.get(3).getFileName().toString());
+        // then
+        assertEquals("1", migrations.get(0).getVersion());
+        assertEquals("1.2", migrations.get(1).getVersion());
+        assertEquals("2", migrations.get(2).getVersion());
+        assertEquals("2.1", migrations.get(3).getVersion());
     }
 }

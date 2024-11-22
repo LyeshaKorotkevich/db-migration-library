@@ -2,6 +2,11 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'io.freefair.lombok' version '8.3'
+    id 'application'
+}
+
+application {
+    mainClass = 'eu.innowise.MigrationCli'
 }
 
 group = 'eu.innowise'
@@ -10,6 +15,33 @@ version = '1.0-SNAPSHOT'
 repositories {
     mavenCentral()
 }
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'eu.innowise.MigrationCli'
+        )
+    }
+}
+
+tasks.register('fatJar', Jar) {
+    manifest {
+        attributes(
+                'Main-Class': 'eu.innowise.MigrationCli'
+        )
+    }
+    from sourceSets.main.output
+    dependsOn configurations.runtimeClasspath
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+build.dependsOn fatJar
 
 publishing {
     publications {

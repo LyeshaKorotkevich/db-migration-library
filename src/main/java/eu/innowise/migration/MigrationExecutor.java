@@ -1,13 +1,12 @@
 package eu.innowise.migration;
 
 import eu.innowise.db.ConnectionManager;
+import eu.innowise.model.Migration;
 import eu.innowise.utils.Constants;
-import eu.innowise.utils.MigrationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -18,10 +17,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MigrationExecutor {
 
-    private final MigrationFileReader fileReader;
-
-    public void executeMigrations(List<Path> migrationFiles) {
-        log.info("Starting batch migration for {} files.", migrationFiles.size());
+    public void executeMigrations(List<Migration> migrations) {
+        log.info("Starting batch migration for {} files.", migrations.size());
 
         try (Connection connection = ConnectionManager.getConnection()) {
             connection.setAutoCommit(false);
@@ -29,8 +26,8 @@ public class MigrationExecutor {
             try {
                 lockSchemaHistoryTable(connection);
 
-                for (Path migrationFile : migrationFiles) {
-                    executeSingleMigration(connection, migrationFile);
+                for (Migration migration : migrations) {
+                    executeSingleMigration(connection, migration);
                 }
 
                 connection.commit();
@@ -50,40 +47,35 @@ public class MigrationExecutor {
         }
     }
 
-    private void executeSingleMigration(Connection connection, Path migrationFile) throws SQLException, IOException {
-        String filename = migrationFile.getFileName().toString();
+    private void executeSingleMigration(Connection connection, Migration migration) throws SQLException, IOException {
 
-        String description = MigrationUtils.extractDescriptionFromFilename(filename);
-        String version = MigrationUtils.extractVersionFromFilename(filename);
-        int checksum = MigrationUtils.calculateChecksum(migrationFile);
+        log.info("Starting migration for file: {}", migration.getDescription());
+        log.debug("Migration version: {}, checksum: {}", migration.getVersion(), migration.getChecksum());
 
-        log.info("Starting migration for file: {}", description);
-        log.debug("Migration version: {}, checksum: {}", version, checksum);
-
-        List<String> sqlStatements = fileReader.parseSqlFile(migrationFile);
+        List<String> sqlStatements = migration.getSqlStatements();
         for (String sql : sqlStatements) {
             log.debug("Executing SQL: {}", sql);
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute(sql);
             } catch (SQLException e) {
-                log.error("Found error in migration with version: {}", version);
+                log.error("Found error in migration with version: {}", migration.getVersion());
                 throw e;
             }
         }
 
-        insertSchemaHistory(connection, version, description, checksum);
-        log.info("Migration completed successfully for file: {}", description);
+        insertSchemaHistory(connection, migration);
+        log.info("Migration completed successfully for file: {}", migration.getDescription());
     }
 
-    private void insertSchemaHistory(Connection connection, String version, String description, int checksum) {
+    private void insertSchemaHistory(Connection connection, Migration migration) {
         try (PreparedStatement stmt = connection.prepareStatement(Constants.INSERT_SCHEMA_HISTORY)) {
-            stmt.setString(1, version);
-            stmt.setString(2, description);
-            stmt.setInt(3, checksum);
+            stmt.setString(1, migration.getVersion());
+            stmt.setString(2, migration.getDescription());
+            stmt.setInt(3, migration.getChecksum());
             stmt.executeUpdate();
-            log.info("Schema history updated for version: {}, ", version);
+            log.info("Schema history updated for version: {}, ", migration.getVersion());
         } catch (SQLException e) {
-            log.error("Failed to update schema history for version: {}", version, e);
+            log.error("Failed to update schema history for version: {}", migration.getVersion(), e);
             throw new RuntimeException("Failed to update schema history", e);
         }
     }

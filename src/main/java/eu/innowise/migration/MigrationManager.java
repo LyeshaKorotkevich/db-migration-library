@@ -1,21 +1,21 @@
 package eu.innowise.migration;
 
 import eu.innowise.db.ConnectionManager;
+import eu.innowise.model.AppliedMigration;
+import eu.innowise.model.Migration;
 import eu.innowise.utils.Constants;
-import eu.innowise.utils.MigrationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -23,16 +23,19 @@ public class MigrationManager {
 
     private final MigrationFileReader fileReader;
 
-    public Map<String, Integer> getAppliedMigrationsWithChecksums() {
-        Map<String, Integer> appliedMigrations = new HashMap<>();
+    public List<AppliedMigration> getAppliedMigrations() {
+        List<AppliedMigration> appliedMigrations = new ArrayList<>();
         try (Connection connection = ConnectionManager.getConnection();
              Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(Constants.SELECT_VERSIONS_AND_CHECKSUMS_FROM_SCHEMA_HISTORY)) {
+             ResultSet rs = stmt.executeQuery(Constants.SELECT_FROM_SCHEMA_HISTORY)) {
 
             while (rs.next()) {
                 String version = rs.getString("version");
+                String description = rs.getString("description");
                 int checksum = rs.getInt("checksum");
-                appliedMigrations.put(version, checksum);
+                LocalDateTime installedOn = rs.getTimestamp("installed_on").toLocalDateTime();
+
+                appliedMigrations.add(new AppliedMigration(version, description, checksum, installedOn));
             }
         } catch (SQLException e) {
             log.error("Failed to fetch applied migrations and checksums.", e);
@@ -41,8 +44,8 @@ public class MigrationManager {
         return appliedMigrations;
     }
 
-    public List<Path> getPendingMigrations() {
-        List<Path> allMigrations;
+    public List<Migration> getPendingMigrations() {
+        List<Migration> allMigrations;
         try {
             allMigrations = fileReader.findMigrationFilesInResources();
         } catch (IOException | URISyntaxException e) {
@@ -50,20 +53,29 @@ public class MigrationManager {
             throw new RuntimeException(e);
         }
 
-        Map<String, Integer> appliedMigrations = getAppliedMigrationsWithChecksums();
+        List<AppliedMigration> appliedMigrations = getAppliedMigrations();
 
         return allMigrations.stream()
                 .filter(migration -> {
-                    String version = MigrationUtils.extractVersionFromFilename(migration.getFileName().toString());
-                    if (appliedMigrations.containsKey(version)) {
-                        int currentChecksum = MigrationUtils.calculateChecksum(migration);
-                        int appliedChecksum = appliedMigrations.get(version);
+                    boolean isApplied = appliedMigrations.stream()
+                            .anyMatch(appliedMigration -> appliedMigration.getVersion().equals(migration.getVersion()));
+
+                    if (isApplied) {
+                        AppliedMigration appliedMigration = appliedMigrations.stream()
+                                .filter(applied -> applied.getVersion().equals(migration.getVersion()))
+                                .findFirst()
+                                .orElseThrow(() -> new IllegalStateException("Applied migration not found"));
+
+                        int currentChecksum = migration.getChecksum();
+                        int appliedChecksum = appliedMigration.getChecksum();
+
                         if (currentChecksum != appliedChecksum) {
-                            log.warn("Migration with version {} has been modified. Skipping execution.", version);
-                            throw new IllegalStateException("Migration has been modified: " + version);
+                            log.warn("Migration with version {} has been modified. Skipping execution.", migration.getVersion());
+                            throw new IllegalStateException("Migration has been modified: " + migration.getVersion());
                         }
                     }
-                    return !appliedMigrations.containsKey(version);
+
+                    return !isApplied;
                 })
                 .sorted(new MigrationVersionComparator())
                 .toList();

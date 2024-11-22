@@ -37,7 +37,7 @@ public final class Constants {
             );
             """;
 
-    public static final String SELECT_VERSIONS_AND_CHECKSUMS_FROM_SCHEMA_HISTORY = "SELECT version, checksum FROM " + SCHEMA_HISTORY_TABLE;
+    public static final String SELECT_FROM_SCHEMA_HISTORY = "SELECT version, description, checksum, installed_on FROM " + SCHEMA_HISTORY_TABLE;
     public static final String INSERT_SCHEMA_HISTORY = "INSERT INTO " + Constants.SCHEMA_HISTORY_TABLE +
             " (version, description, checksum) VALUES (?, ?, ?)";
     public static final String SELECT_SCHEMA_HISTORY_FOR_UPDATE = "SELECT * FROM " + Constants.SCHEMA_HISTORY_TABLE + " FOR UPDATE";

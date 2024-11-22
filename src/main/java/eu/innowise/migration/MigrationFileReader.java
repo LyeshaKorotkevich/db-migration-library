@@ -1,6 +1,8 @@
 package eu.innowise.migration;
 
+import eu.innowise.model.Migration;
 import eu.innowise.utils.Constants;
+import eu.innowise.utils.MigrationUtils;
 import eu.innowise.utils.PropertiesUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,7 +19,7 @@ import java.util.stream.Stream;
 @Slf4j
 public class MigrationFileReader {
 
-    public List<Path> findMigrationFilesInResources() throws IOException, URISyntaxException {
+    public List<Migration> findMigrationFilesInResources() throws IOException, URISyntaxException {
         String migrationsPath = PropertiesUtils.getProperty("migration.folder");
         if (migrationsPath == null) {
             migrationsPath = Constants.DEFAULT_MIGRATIONS_PATH;
@@ -30,15 +32,31 @@ public class MigrationFileReader {
         }
 
         try (Stream<Path> paths = Files.walk(Paths.get(resourceUrl.toURI()))) {
-            List<Path> migrationFiles = paths.filter(Files::isRegularFile)
+            List<Migration> migrations = paths.filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(Constants.SQL_EXTENSION))
+                    .map(this::toMigration)
                     .toList();
 
-            log.info("Found {} migration files in folder: {}", migrationFiles.size(), migrationsPath);
-            return migrationFiles;
+            log.info("Found {} migration files in folder: {}", migrations.size(), migrationsPath);
+            return migrations;
         } catch (IOException e) {
             log.error("Error accessing migration files in folder: {}", migrationsPath, e);
             throw e;
+        }
+    }
+
+    private Migration toMigration(Path path) {
+        String filename = path.getFileName().toString();
+        String version = MigrationUtils.extractVersionFromFilename(filename);
+        String description = MigrationUtils.extractDescriptionFromFilename(filename);
+        int checksum = MigrationUtils.calculateChecksum(path);
+
+        try {
+            List<String> sqlStatements = parseSqlFile(path);
+            return new Migration(version, description, checksum, sqlStatements);
+        } catch (IOException e) {
+            log.error("Error reading SQL from migration file: {}", filename, e);
+            throw new RuntimeException("Error reading migration file: " + filename, e);
         }
     }
 
