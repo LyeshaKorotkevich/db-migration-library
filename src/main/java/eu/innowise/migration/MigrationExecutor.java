@@ -1,6 +1,8 @@
 package eu.innowise.migration;
 
 import eu.innowise.db.ConnectionManager;
+import eu.innowise.exceptions.MigrationException;
+import eu.innowise.exceptions.SchemaLockException;
 import eu.innowise.model.Migration;
 import eu.innowise.utils.Constants;
 import lombok.RequiredArgsConstructor;
@@ -39,11 +41,11 @@ public class MigrationExecutor {
                 } catch (SQLException exception) {
                     log.error("Error during rollback.");
                 }
-                throw new RuntimeException("Batch migration process failed.", e);
+                throw new MigrationException("Batch migration process failed.", e);
             }
         } catch (SQLException e) {
             log.error("Database connection error during migration.", e);
-            throw new RuntimeException("Error during batch migration process.", e);
+            throw new MigrationException("Error during batch migration process.", e);
         }
     }
 
@@ -59,7 +61,7 @@ public class MigrationExecutor {
                 stmt.execute(sql);
             } catch (SQLException e) {
                 log.error("Found error in migration with version: {}", migration.getVersion());
-                throw e;
+                throw new MigrationException("Found error in migration file", e);
             }
         }
 
@@ -68,26 +70,26 @@ public class MigrationExecutor {
     }
 
     private void insertSchemaHistory(Connection connection, Migration migration) {
-        try (PreparedStatement stmt = connection.prepareStatement(Constants.INSERT_SCHEMA_HISTORY)) {
-            stmt.setString(1, migration.getVersion());
-            stmt.setString(2, migration.getDescription());
-            stmt.setInt(3, migration.getChecksum());
-            stmt.executeUpdate();
+        try (PreparedStatement statement = connection.prepareStatement(Constants.INSERT_SCHEMA_HISTORY)) {
+            statement.setString(1, migration.getVersion());
+            statement.setString(2, migration.getDescription());
+            statement.setInt(3, migration.getChecksum());
+            statement.executeUpdate();
             log.info("Schema history updated for version: {}, ", migration.getVersion());
         } catch (SQLException e) {
             log.error("Failed to update schema history for version: {}", migration.getVersion(), e);
-            throw new RuntimeException("Failed to update schema history", e);
+            throw new MigrationException("Failed to update schema history", e);
         }
     }
 
     private void lockSchemaHistoryTable(Connection connection) throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
+        try (Statement statement = connection.createStatement()) {
             log.info("Acquiring lock on schema history table...");
-            stmt.executeQuery(Constants.SELECT_SCHEMA_HISTORY_FOR_UPDATE);
+            statement.executeQuery(Constants.SELECT_SCHEMA_HISTORY_FOR_UPDATE);
             log.info("Lock acquired on schema history table.");
         } catch (SQLException e) {
             log.error("Error acquiring lock on schema history table", e);
-            throw e;
+            throw new SchemaLockException("Error acquiring lock on schema history table", e);
         }
     }
 }

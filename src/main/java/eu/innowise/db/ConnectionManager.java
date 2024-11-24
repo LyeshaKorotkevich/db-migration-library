@@ -2,6 +2,7 @@ package eu.innowise.db;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import eu.innowise.exceptions.DbConnectionException;
 import eu.innowise.utils.PropertiesUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,7 +34,7 @@ public final class ConnectionManager {
             return dataSource.getConnection();
         } catch (SQLException e) {
             log.error("Error getting connection from the pool", e);
-            throw new RuntimeException("Error getting connection from the pool", e);
+            throw new DbConnectionException("Error getting connection from the pool", e);
         }
     }
 

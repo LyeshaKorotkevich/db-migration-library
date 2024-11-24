@@ -3,6 +3,7 @@ package eu.innowise;
 import eu.innowise.db.ConnectionManager;
 import eu.innowise.db.MigrationStrategy;
 import eu.innowise.db.MigrationStrategyFactory;
+import eu.innowise.exceptions.MigrationException;
 import eu.innowise.migration.MigrationExecutor;
 import eu.innowise.migration.MigrationFileReader;
 import eu.innowise.migration.MigrationManager;
@@ -10,7 +11,6 @@ import eu.innowise.model.Migration;
 import eu.innowise.utils.DatabaseUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import java.sql.SQLException;
 import java.util.List;
 
 @Slf4j
@@ -43,9 +43,9 @@ public class MigrationTool {
 
             log.info("Migrations completed successfully.");
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             log.error("Error during migration.", e);
-            throw new RuntimeException("Migration process failed.", e);
+            throw new MigrationException("Migration process failed.", e);
 
         } finally {
             ConnectionManager.closeDataSource();

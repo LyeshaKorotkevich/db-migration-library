@@ -1,6 +1,8 @@
 package eu.innowise.migration;
 
 import eu.innowise.db.ConnectionManager;
+import eu.innowise.exceptions.MigrationException;
+import eu.innowise.exceptions.MigrationFileReadException;
 import eu.innowise.model.AppliedMigration;
 import eu.innowise.model.Migration;
 import eu.innowise.utils.Constants;
@@ -39,7 +41,7 @@ public class MigrationManager {
             }
         } catch (SQLException e) {
             log.error("Failed to fetch applied migrations and checksums.", e);
-            throw new RuntimeException("Failed to fetch applied migrations and checksums", e);
+            throw new MigrationException("Failed to fetch applied migrations and checksums", e);
         }
         return appliedMigrations;
     }
@@ -50,7 +52,7 @@ public class MigrationManager {
             allMigrations = fileReader.findMigrationFilesInResources();
         } catch (IOException | URISyntaxException e) {
             log.error("Error discovering migration files.", e);
-            throw new RuntimeException(e);
+            throw new MigrationException("Error discovering migration files.", e);
         }
 
         List<AppliedMigration> appliedMigrations = getAppliedMigrations();

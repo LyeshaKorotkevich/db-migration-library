@@ -1,5 +1,6 @@
 package eu.innowise.migration;
 
+import eu.innowise.exceptions.MigrationFileReadException;
 import eu.innowise.model.Migration;
 import eu.innowise.utils.Constants;
 import eu.innowise.utils.MigrationUtils;
@@ -56,7 +57,7 @@ public class MigrationFileReader {
             return new Migration(version, description, checksum, sqlStatements);
         } catch (IOException e) {
             log.error("Error reading SQL from migration file: {}", filename, e);
-            throw new RuntimeException("Error reading migration file: " + filename, e);
+            throw new MigrationFileReadException("Error reading migration file: " + filename, e);
         }
     }
 

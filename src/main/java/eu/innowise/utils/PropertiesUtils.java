@@ -1,5 +1,6 @@
 package eu.innowise.utils;
 
+import eu.innowise.exceptions.PropertiesLoadingException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -21,7 +22,7 @@ public final class PropertiesUtils {
             log.info("Successfully loaded 'application.properties'.");
         } catch (IOException e) {
             log.error("Failed to load 'application.properties'.", e);
-            throw new RuntimeException("Failed to load properties file.", e);
+            throw new PropertiesLoadingException("Failed to load properties file.", e);
         }
     }
 

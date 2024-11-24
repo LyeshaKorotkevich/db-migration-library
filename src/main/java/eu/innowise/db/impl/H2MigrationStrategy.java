@@ -2,6 +2,7 @@ package eu.innowise.db.impl;
 
 import eu.innowise.db.ConnectionManager;
 import eu.innowise.db.MigrationStrategy;
+import eu.innowise.exceptions.MigrationException;
 import eu.innowise.utils.Constants;
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,13 +14,13 @@ import java.sql.Statement;
 public class H2MigrationStrategy implements MigrationStrategy {
 
     @Override
-    public void ensureMetadataTableExists() throws SQLException {
+    public void ensureMetadataTableExists() {
         try (Connection connection = ConnectionManager.getConnection();
              Statement stmt = connection.createStatement()) {
             stmt.execute(Constants.CREATE_SCHEMA_TABLE_MYSQL);
         } catch (SQLException e) {
             log.error("Failed to ensure schema metadata table.", e);
-            throw e;
+            throw new MigrationException("Failed to ensure schema metadata table.", e);
         }
     }
 }
