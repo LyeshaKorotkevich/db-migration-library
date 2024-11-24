@@ -1,0 +1,5 @@
+DELETE FROM Tasks;
+DELETE FROM User_Project;
+
+DELETE FROM Projects;
+DELETE FROM Users;

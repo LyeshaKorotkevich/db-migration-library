@@ -7,11 +7,13 @@ public final class Constants {
 
     public static final String SEMICOLON = ";";
     public static final String SQL_EXTENSION = ".sql";
+    public static final String MIGRATION_PREFIX = "V";
+    public static final String ROLLBACK_PREFIX = "U";
 
     public static final String DEFAULT_REPORT_PATH = "reports";
     public static final String DEFAULT_MIGRATIONS_PATH = "migrations";
 
-    public static final String MIGRATION_FILE_PATTERN = "^V(\\d+(?:[._]\\d+)?)__(.*)\\.sql$";
+    public static final String MIGRATION_FILE_PATTERN = "^[VU](\\d+(?:[._]\\d+)?)__(.*)\\.sql$";
 
     public static final String SCHEMA_HISTORY_TABLE = "schema_history";
 
@@ -42,5 +44,6 @@ public final class Constants {
     public static final String SELECT_FROM_SCHEMA_HISTORY = "SELECT version, description, checksum, installed_on FROM " + SCHEMA_HISTORY_TABLE;
     public static final String INSERT_SCHEMA_HISTORY = "INSERT INTO " + Constants.SCHEMA_HISTORY_TABLE +
             " (version, description, checksum) VALUES (?, ?, ?)";
+    public static final String DELETE_FROM_SCHEMA_HISTORY = "DELETE FROM " + Constants.SCHEMA_HISTORY_TABLE + " WHERE version=?";
     public static final String SELECT_SCHEMA_HISTORY_FOR_UPDATE = "SELECT * FROM " + Constants.SCHEMA_HISTORY_TABLE + " FOR UPDATE";
 }

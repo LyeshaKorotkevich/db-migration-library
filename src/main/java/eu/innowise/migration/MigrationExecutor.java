@@ -3,6 +3,7 @@ package eu.innowise.migration;
 import eu.innowise.db.ConnectionManager;
 import eu.innowise.exceptions.MigrationException;
 import eu.innowise.exceptions.SchemaLockException;
+import eu.innowise.model.AppliedMigration;
 import eu.innowise.model.Migration;
 import eu.innowise.report.MigrationReportGenerator;
 import eu.innowise.utils.Constants;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -19,6 +21,9 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class MigrationExecutor {
+
+    private final MigrationManager migrationManager;
+    private final MigrationFileReader fileReader;
 
     public void executeMigrations(List<Migration> migrations) throws MigrationException {
         log.info("Starting batch migration for {} files.", migrations.size());
@@ -70,6 +75,94 @@ public class MigrationExecutor {
 
         insertSchemaHistory(connection, migration);
         log.info("Migration completed successfully for file: {}", migration.getDescription());
+    }
+
+    public void rollbackMigrationToVersion(String targetVersion) throws MigrationException {
+        log.info("Starting rollback to version: {}", targetVersion);
+
+        List<AppliedMigration> appliedMigrations = migrationManager.getAppliedMigrations();
+
+        List<AppliedMigration> migrationsToRollback = appliedMigrations.stream()
+                .filter(m -> MigrationVersionComparator
+                        .compareVersions(m.getVersion(), targetVersion) > 0)
+                .sorted(new MigrationVersionComparator().reversed())
+                .toList();
+
+        if (migrationsToRollback.isEmpty()) {
+            log.info("No migrations to rollback.");
+            return;
+        }
+
+        try (Connection connection = ConnectionManager.getConnection()) {
+            connection.setAutoCommit(false);
+
+            lockSchemaHistoryTable(connection);
+
+            for (AppliedMigration migration : migrationsToRollback) {
+                rollbackSingleMigration(connection, migration);
+            }
+
+            connection.commit();
+            log.info("Rollback completed successfully.");
+        } catch (Exception e) {
+            log.error("Rollback failed. Rolling back all changes.", e);
+            try (Connection connection = ConnectionManager.getConnection()) {
+                connection.rollback();
+            } catch (SQLException exception) {
+                log.error("Error during rollback.");
+            }
+            throw new MigrationException("Rollback process failed.", e);
+        }
+    }
+
+    private void rollbackSingleMigration(Connection connection, AppliedMigration appliedMigration) throws MigrationException {
+        log.info("Rolling back migration: {}", appliedMigration.getDescription());
+
+        try {
+            List<Migration> rollbackFiles = fileReader.findRollbackFilesInResources();
+            Migration rollbackMigration = rollbackFiles.stream()
+                    .filter(m -> m.getVersion().equals(appliedMigration.getVersion()))
+                    .findFirst()
+                    .orElseThrow(() -> new MigrationException(
+                            "No rollback file found for migration version: " + appliedMigration.getVersion()));
+
+            log.info("Found rollback file for version: {}", appliedMigration.getVersion());
+
+            List<String> rollbackStatements = rollbackMigration.getSqlStatements();
+            if (rollbackStatements.isEmpty()) {
+                log.warn("No rollback SQL statements found for version: {}", appliedMigration.getVersion());
+                throw new MigrationException("Rollback file is empty or contains no SQL statements.");
+            }
+
+            for (String sql : rollbackStatements) {
+                log.debug("Executing rollback SQL: {}", sql);
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.execute(sql);
+                } catch (SQLException e) {
+                    log.error("Error executing rollback SQL for version: {}", appliedMigration.getVersion(), e);
+                    throw new MigrationException("Error executing rollback SQL for version: " + appliedMigration.getVersion(), e);
+                }
+            }
+
+            removeMigrationFromSchemaHistory(connection, appliedMigration);
+            log.info("Rollback for version {} completed successfully.", appliedMigration.getVersion());
+
+        } catch (IOException | URISyntaxException e) {
+            log.error("Error reading rollback files.", e);
+            throw new MigrationException("Error finding rollback files for migration: " + appliedMigration.getVersion(), e);
+        }
+    }
+
+
+    private void removeMigrationFromSchemaHistory(Connection connection, AppliedMigration migration) throws MigrationException {
+        try (PreparedStatement statement = connection.prepareStatement(Constants.DELETE_FROM_SCHEMA_HISTORY)) {
+            statement.setString(1, migration.getVersion());
+            statement.executeUpdate();
+            log.info("Migration {} removed from schema history.", migration.getVersion());
+        } catch (SQLException e) {
+            log.error("Failed to remove migration from schema history for version: {}", migration.getVersion(), e);
+            throw new MigrationException("Failed to remove migration from schema history", e);
+        }
     }
 
     private void insertSchemaHistory(Connection connection, Migration migration) throws MigrationException {

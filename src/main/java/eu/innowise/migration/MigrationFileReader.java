@@ -21,6 +21,14 @@ import java.util.stream.Stream;
 public class MigrationFileReader {
 
     public List<Migration> findMigrationFilesInResources() throws IOException, URISyntaxException {
+        return findFilesInResources(Constants.MIGRATION_PREFIX);
+    }
+
+    public List<Migration> findRollbackFilesInResources() throws IOException, URISyntaxException {
+        return findFilesInResources(Constants.ROLLBACK_PREFIX);
+    }
+
+    private List<Migration> findFilesInResources(String prefix) throws IOException, URISyntaxException {
         String migrationsPath = PropertiesUtils.getProperty("migration.folder");
         if (migrationsPath == null) {
             migrationsPath = Constants.DEFAULT_MIGRATIONS_PATH;
@@ -34,14 +42,15 @@ public class MigrationFileReader {
 
         try (Stream<Path> paths = Files.walk(Paths.get(resourceUrl.toURI()))) {
             List<Migration> migrations = paths.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(Constants.SQL_EXTENSION))
+                    .filter(path -> path.toString().endsWith(Constants.SQL_EXTENSION)
+                            && path.getFileName().toString().startsWith(prefix))
                     .map(this::toMigration)
                     .toList();
 
-            log.info("Found {} migration files in folder: {}", migrations.size(), migrationsPath);
+            log.info("Found {} {} files in folder: {}", migrations.size(), prefix, migrationsPath);
             return migrations;
         } catch (IOException e) {
-            log.error("Error accessing migration files in folder: {}", migrationsPath, e);
+            log.error("Error accessing files in folder: {}", migrationsPath, e);
             throw e;
         }
     }
@@ -61,7 +70,7 @@ public class MigrationFileReader {
         }
     }
 
-    public List<String> parseSqlFile(Path file) throws IOException {
+    private List<String> parseSqlFile(Path file) throws IOException {
         String content = Files.readString(file, StandardCharsets.UTF_8);
         return Stream.of(content.split(Constants.SEMICOLON))
                 .map(String::trim)
