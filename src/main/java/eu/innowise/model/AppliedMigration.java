@@ -1,16 +1,18 @@
 package eu.innowise.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-@Data
-@AllArgsConstructor
-public class AppliedMigration {
+@Getter
+@EqualsAndHashCode(callSuper = true)
+public class AppliedMigration extends BaseMigration {
 
-    private String version;
-    private String description;
-    private int checksum;
-    private LocalDateTime installedOn;
+    private final LocalDateTime installedOn;
+
+    public AppliedMigration(String version, String description, int checksum, LocalDateTime installedOn) {
+        super(version, description, checksum);
+        this.installedOn = installedOn;
+    }
 }

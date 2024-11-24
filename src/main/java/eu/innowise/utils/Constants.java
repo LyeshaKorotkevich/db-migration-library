@@ -8,8 +8,10 @@ public final class Constants {
     public static final String SEMICOLON = ";";
     public static final String SQL_EXTENSION = ".sql";
 
-    public static final String MIGRATION_FILE_PATTERN = "^V(\\d+(?:[._]\\d+)?)__(.*)\\.sql$";
+    public static final String DEFAULT_REPORT_PATH = "reports";
     public static final String DEFAULT_MIGRATIONS_PATH = "migrations";
+
+    public static final String MIGRATION_FILE_PATTERN = "^V(\\d+(?:[._]\\d+)?)__(.*)\\.sql$";
 
     public static final String SCHEMA_HISTORY_TABLE = "schema_history";
 

@@ -1,17 +1,22 @@
 package eu.innowise.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
-@AllArgsConstructor
-public class Migration {
+@Getter
+@ToString(exclude = "sqlStatements")
+@EqualsAndHashCode(callSuper = true)
+public class Migration extends BaseMigration{
 
-    private String version;
-    private String description;
-    private int checksum;
+    @JsonIgnore
+    private final List<String> sqlStatements;
 
-    private List<String> sqlStatements;
+    public Migration(String version, String description, int checksum, List<String> sqlStatements) {
+        super(version, description, checksum);
+        this.sqlStatements = sqlStatements;
+    }
 }

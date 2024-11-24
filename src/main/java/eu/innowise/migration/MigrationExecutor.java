@@ -4,6 +4,7 @@ import eu.innowise.db.ConnectionManager;
 import eu.innowise.exceptions.MigrationException;
 import eu.innowise.exceptions.SchemaLockException;
 import eu.innowise.model.Migration;
+import eu.innowise.report.MigrationReportGenerator;
 import eu.innowise.utils.Constants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MigrationExecutor {
 
-    public void executeMigrations(List<Migration> migrations) {
+    public void executeMigrations(List<Migration> migrations) throws MigrationException {
         log.info("Starting batch migration for {} files.", migrations.size());
 
         try (Connection connection = ConnectionManager.getConnection()) {
@@ -34,6 +35,7 @@ public class MigrationExecutor {
 
                 connection.commit();
                 log.info("All migrations completed successfully.");
+                MigrationReportGenerator.generateJsonReport(migrations, true);
             } catch (Exception e) {
                 log.error("Batch migration failed. Rolling back all changes.", e);
                 try {
@@ -49,7 +51,7 @@ public class MigrationExecutor {
         }
     }
 
-    private void executeSingleMigration(Connection connection, Migration migration) throws SQLException, IOException {
+    private void executeSingleMigration(Connection connection, Migration migration) throws MigrationException {
 
         log.info("Starting migration for file: {}", migration.getDescription());
         log.debug("Migration version: {}, checksum: {}", migration.getVersion(), migration.getChecksum());
@@ -61,6 +63,7 @@ public class MigrationExecutor {
                 stmt.execute(sql);
             } catch (SQLException e) {
                 log.error("Found error in migration with version: {}", migration.getVersion());
+                MigrationReportGenerator.generateJsonReport(migration, false);
                 throw new MigrationException("Found error in migration file", e);
             }
         }
@@ -69,7 +72,7 @@ public class MigrationExecutor {
         log.info("Migration completed successfully for file: {}", migration.getDescription());
     }
 
-    private void insertSchemaHistory(Connection connection, Migration migration) {
+    private void insertSchemaHistory(Connection connection, Migration migration) throws MigrationException {
         try (PreparedStatement statement = connection.prepareStatement(Constants.INSERT_SCHEMA_HISTORY)) {
             statement.setString(1, migration.getVersion());
             statement.setString(2, migration.getDescription());
@@ -82,7 +85,7 @@ public class MigrationExecutor {
         }
     }
 
-    private void lockSchemaHistoryTable(Connection connection) throws SQLException {
+    private void lockSchemaHistoryTable(Connection connection) throws SchemaLockException {
         try (Statement statement = connection.createStatement()) {
             log.info("Acquiring lock on schema history table...");
             statement.executeQuery(Constants.SELECT_SCHEMA_HISTORY_FOR_UPDATE);
