@@ -31,7 +31,7 @@ Clone the repository to your local machine:
 ```bash
 git clone https://github.com/LyeshaKorotkevich/db-migration-library.git
 ```
-2. Library Configuration
+### 2. **Library Configuration**
 Configuration is done through the application.properties file. In this file, you need to specify the database connection parameters and the location of migration files.
 
 Example application.properties configuration:
@@ -47,7 +47,7 @@ report.output.path=path/to/reports  # By default, reports are saved in the "repo
 ```
 You can also use docker-compose to quickly set up your database if needed.
 
-3. Running the CLI Utility
+### 3. **Running the CLI Utility**
 Before using the CLI utility, ensure that your application.properties file is configured. Then, build the project using Gradle:
 
 ```bash
@@ -64,7 +64,7 @@ migrate — Apply migrations.
 rollback [version] — Rollback migrations to a specified version.
 status — Check the current migration status.
 ```
-4. Adding the Library as a Dependency
+### 4. **Adding the Library as a Dependency**
 To use the library in another project, you need to publish it to your local Maven repository. Run the following command:
 ```bash
 gradle publishToMavenLocal
