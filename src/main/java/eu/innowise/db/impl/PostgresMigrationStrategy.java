@@ -10,9 +10,19 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+/**
+ * Implementation of the MigrationStrategy for PostgreSQL database.
+ * Ensures that the metadata table exists in the PostgreSQL database.
+ */
 @Slf4j
 public class PostgresMigrationStrategy implements MigrationStrategy {
 
+    /**
+     * Ensures that the schema metadata table exists in the PostgreSQL database.
+     * If the table doesn't exist, it will be created.
+     *
+     * @throws MigrationException if there is an error while creating the table
+     */
     @Override
     public void ensureMetadataTableExists() {
         try (Connection connection = ConnectionManager.getConnection();

@@ -2,7 +2,6 @@ package eu.innowise.migration;
 
 import eu.innowise.db.ConnectionManager;
 import eu.innowise.exceptions.MigrationException;
-import eu.innowise.exceptions.MigrationFileReadException;
 import eu.innowise.model.AppliedMigration;
 import eu.innowise.model.Migration;
 import eu.innowise.utils.Constants;
@@ -18,13 +17,25 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+/**
+ * Class responsible for handling migration operations such as getting applied migrations and
+ * determining pending migrations.
+ */
 @Slf4j
 @RequiredArgsConstructor
 public class MigrationManager {
 
     private final MigrationFileReader fileReader;
 
+    /**
+     * Retrieves a list of applied migrations from the database.
+     *
+     * @return a list of {@link AppliedMigration} objects representing the migrations that have already been applied
+     * @throws MigrationException if there is an error getting applied migrations from the database
+     */
     public List<AppliedMigration> getAppliedMigrations() {
         List<AppliedMigration> appliedMigrations = new ArrayList<>();
         try (Connection connection = ConnectionManager.getConnection();
@@ -46,40 +57,53 @@ public class MigrationManager {
         return appliedMigrations;
     }
 
+    /**
+     * Retrieves the list of pending migrations that have not been applied yet.
+     * This method checks for migrations in the resources folder and compares them with
+     * the applied migrations stored in the database. If the migration has been applied,
+     * it is skipped. If the migration's checksum has changed, it is stopped.
+     *
+     * @return a list of {@link Migration} objects representing the migrations that are pending application
+     * @throws MigrationException if there is an error discovering migration files or comparing them with applied migrations
+     */
     public List<Migration> getPendingMigrations() {
-        List<Migration> allMigrations;
+        List<Migration> allMigrations = loadAllMigrations();
+        List<AppliedMigration> appliedMigrations = getAppliedMigrations();
+
+        // Creating map to find faster with versions
+        var appliedMigrationsMap = appliedMigrations.stream()
+                .collect(Collectors.toMap(AppliedMigration::getVersion, appliedMigration -> appliedMigration));
+
+        return allMigrations.stream()
+                .filter(migration -> isPendingMigration(migration, appliedMigrationsMap))
+                .sorted(new MigrationVersionComparator())
+                .toList();
+    }
+
+    private List<Migration> loadAllMigrations() {
         try {
-            allMigrations = fileReader.findMigrationFilesInResources();
+            return fileReader.findMigrationFilesInResources();
         } catch (IOException | URISyntaxException e) {
             log.error("Error discovering migration files.", e);
             throw new MigrationException("Error discovering migration files.", e);
         }
+    }
 
-        List<AppliedMigration> appliedMigrations = getAppliedMigrations();
+    private boolean isPendingMigration(Migration migration, Map<String, AppliedMigration> appliedMigrationsMap) {
+        AppliedMigration appliedMigration = appliedMigrationsMap.get(migration.getVersion());
 
-        return allMigrations.stream()
-                .filter(migration -> {
-                    boolean isApplied = appliedMigrations.stream()
-                            .anyMatch(appliedMigration -> appliedMigration.getVersion().equals(migration.getVersion()));
+        if (appliedMigration != null) {
+            if (hasChecksumChanged(migration, appliedMigration)) {
+                log.warn("Migration with version {} has been modified. Skipping execution.", migration.getVersion());
+                throw new IllegalStateException("Migration has been modified: " + migration.getVersion());
+            }
+            return false;
+        }
 
-                    if (isApplied) {
-                        AppliedMigration appliedMigration = appliedMigrations.stream()
-                                .filter(applied -> applied.getVersion().equals(migration.getVersion()))
-                                .findFirst()
-                                .orElseThrow(() -> new IllegalStateException("Applied migration not found"));
+        return true;
+    }
 
-                        int currentChecksum = migration.getChecksum();
-                        int appliedChecksum = appliedMigration.getChecksum();
-
-                        if (currentChecksum != appliedChecksum) {
-                            log.warn("Migration with version {} has been modified. Skipping execution.", migration.getVersion());
-                            throw new IllegalStateException("Migration has been modified: " + migration.getVersion());
-                        }
-                    }
-
-                    return !isApplied;
-                })
-                .sorted(new MigrationVersionComparator())
-                .toList();
+    private boolean hasChecksumChanged(Migration migration, AppliedMigration appliedMigration) {
+        return migration.getChecksum() != appliedMigration.getChecksum();
     }
 }

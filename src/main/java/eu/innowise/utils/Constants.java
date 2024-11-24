@@ -1,5 +1,8 @@
 package eu.innowise.utils;
 
+/**
+ * This class contains constants used throughout the migration library.
+ */
 public final class Constants {
 
     private Constants() {
@@ -40,6 +43,18 @@ public final class Constants {
                 installed_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             """;
+
+    // H2
+    public static final String CREATE_SCHEMA_TABLE_H2 = """
+            CREATE TABLE IF NOT EXISTS schema_history (
+                installed_rank INT IDENTITY PRIMARY KEY,
+                version VARCHAR(15) NOT NULL,
+                description VARCHAR(200) NOT NULL,
+                checksum INT,
+                installed_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """;
+
 
     public static final String SELECT_FROM_SCHEMA_HISTORY = "SELECT version, description, checksum, installed_on FROM " + SCHEMA_HISTORY_TABLE;
     public static final String INSERT_SCHEMA_HISTORY = "INSERT INTO " + Constants.SCHEMA_HISTORY_TABLE +

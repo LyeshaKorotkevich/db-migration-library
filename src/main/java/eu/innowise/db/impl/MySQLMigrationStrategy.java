@@ -10,9 +10,19 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+/**
+ * Implementation of the MigrationStrategy for MySQL database.
+ * Ensures that the metadata table exists in the MySQL database.
+ */
 @Slf4j
 public class MySQLMigrationStrategy implements MigrationStrategy {
 
+    /**
+     * Ensures that the schema metadata table exists in the MySQL database.
+     * If the table doesn't exist, it will be created.
+     *
+     * @throws MigrationException if there is an error while creating the table
+     */
     @Override
     public void ensureMetadataTableExists() {
         try (Connection connection = ConnectionManager.getConnection();

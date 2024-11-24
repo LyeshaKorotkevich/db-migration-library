@@ -3,6 +3,9 @@ package eu.innowise.model;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Abstract base class representing a migration with a version, description, and checksum.
+ */
 @Getter
 @RequiredArgsConstructor
 public abstract class BaseMigration {

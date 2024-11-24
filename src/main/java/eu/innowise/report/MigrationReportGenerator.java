@@ -13,9 +13,19 @@ import java.time.format.DateTimeFormatter;
 
 import static eu.innowise.utils.Constants.DEFAULT_REPORT_PATH;
 
+/**
+ * Class responsible for generating migration reports.
+ * Reports are saved with a timestamp and success/failure status in the filename.
+ */
 @Slf4j
 public class MigrationReportGenerator {
 
+    /**
+     * Generates a JSON report with the migration data.
+     *
+     * @param data The migration data to be included in the report.
+     * @param success The status of the migration (success or failure).
+     */
     public static void generateJsonReport(Object data, boolean success) {
         ObjectWriter writer = new ObjectMapper().writerWithDefaultPrettyPrinter();
         Path outputPath = getReportDirectory(success);

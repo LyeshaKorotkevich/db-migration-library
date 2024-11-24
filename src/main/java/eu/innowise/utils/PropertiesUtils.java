@@ -7,6 +7,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+/**
+ * Utility class for loading and accessing properties from the 'application.properties' file.
+ */
 @Slf4j
 public final class PropertiesUtils {
 
@@ -28,7 +31,18 @@ public final class PropertiesUtils {
 
     private PropertiesUtils() {}
 
+    /**
+     * Retrieves the value of the specified property key.
+     * If the property is not found, this method returns {@code null}.
+     *
+     * @param key The property key to look up.
+     * @return The value of the property, or {@code null} if the key is not found.
+     */
     public static String getProperty(String key) {
-        return properties.getProperty(key);
+        String value = properties.getProperty(key);
+        if (value == null) {
+            log.warn("Property with key '{}' not found.", key);
+        }
+        return value;
     }
 }

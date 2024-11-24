@@ -9,6 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+/**
+ * Manages database connections using HikariCP connection pooling.
+ * It provides methods to get a connection and close the data source.
+ */
 @Slf4j
 public final class ConnectionManager {
 
@@ -29,6 +33,12 @@ public final class ConnectionManager {
     private ConnectionManager() {
     }
 
+    /**
+     * Gets a connection from the Hikari connection pool.
+     *
+     * @return A connection to the database.
+     * @throws DbConnectionException If an error occurs while obtaining the connection.
+     */
     public static Connection getConnection() {
         try {
             return dataSource.getConnection();
@@ -38,6 +48,10 @@ public final class ConnectionManager {
         }
     }
 
+    /**
+     * Closes the data source and releases all resources.
+     * Should be called when the application is shutting down.
+     */
     public static void closeDataSource() {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();

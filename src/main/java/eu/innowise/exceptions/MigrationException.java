@@ -1,5 +1,9 @@
 package eu.innowise.exceptions;
 
+/**
+ * Custom exception that is thrown when a migration operation fails.
+ * This exception is a subclass of {@link RuntimeException}.
+ */
 public class MigrationException extends RuntimeException {
 
     public MigrationException(String message) {

@@ -10,14 +10,24 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+/**
+ * Implementation of the MigrationStrategy for H2 database.
+ * Ensures that the metadata table exists in the H2 database.
+ */
 @Slf4j
 public class H2MigrationStrategy implements MigrationStrategy {
 
+    /**
+     * Ensures that the schema metadata table exists in the H2 database.
+     * If the table doesn't exist, it will be created.
+     *
+     * @throws MigrationException if there is an error while creating the table
+     */
     @Override
     public void ensureMetadataTableExists() {
         try (Connection connection = ConnectionManager.getConnection();
              Statement stmt = connection.createStatement()) {
-            stmt.execute(Constants.CREATE_SCHEMA_TABLE_MYSQL);
+            stmt.execute(Constants.CREATE_SCHEMA_TABLE_H2);
         } catch (SQLException e) {
             log.error("Failed to ensure schema metadata table.", e);
             throw new MigrationException("Failed to ensure schema metadata table.", e);

@@ -2,6 +2,10 @@ package eu.innowise;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Command Line Interface (CLI) for interacting with the migration tool.
+ * This class allows users to execute migration-related commands directly from the command line.
+ */
 @Slf4j
 public class MigrationCli {
 

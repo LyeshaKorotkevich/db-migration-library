@@ -14,9 +14,16 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+/**
+ * A tool for managing database migrations, including applying, rolling back, and checking migration status.
+ */
 @Slf4j
 public class MigrationTool {
 
+    /**
+     * Starts the migration process. It ensures the schema_history table exists, retrieves pending migrations,
+     * and applies them in the correct order.
+     */
     public static void migrate() {
         log.info("Starting migrations...");
 
@@ -48,11 +55,14 @@ public class MigrationTool {
             log.error("Error during migration.", e);
             throw new MigrationException("Migration process failed.", e);
 
-        } finally {
-            ConnectionManager.closeDataSource();
         }
     }
 
+    /**
+     * Rolls back the database to the specified version. If an error occurs, a MigrationException is thrown.
+     *
+     * @param version The version to roll back to.
+     */
     public static void rollback(String version) {
         MigrationFileReader fileReader = new MigrationFileReader();
         MigrationManager migrationManager = new MigrationManager(fileReader);
@@ -64,11 +74,12 @@ public class MigrationTool {
             log.error("Error during rollback.", e);
             throw new MigrationException("Rollback failed.", e);
 
-        } finally {
-            ConnectionManager.closeDataSource();
         }
     }
 
+    /**
+     * Shows the current migration status, including a list of applied migrations and the current version.
+     */
     public static void showStatus() {
         try {
             MigrationManager migrationManager = new MigrationManager(new MigrationFileReader());

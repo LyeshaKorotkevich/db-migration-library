@@ -18,6 +18,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+/**
+ * Class is responsible for executing and rolling back database migrations.
+*/
 @Slf4j
 @RequiredArgsConstructor
 public class MigrationExecutor {
@@ -25,6 +28,12 @@ public class MigrationExecutor {
     private final MigrationManager migrationManager;
     private final MigrationFileReader fileReader;
 
+    /**
+     * Executes migrations on the database.
+     *
+     * @param migrations The list of migrations to be executed.
+     * @throws MigrationException if an error occurs during migration execution.
+     */
     public void executeMigrations(List<Migration> migrations) throws MigrationException {
         log.info("Starting batch migration for {} files.", migrations.size());
 
@@ -43,16 +52,62 @@ public class MigrationExecutor {
                 MigrationReportGenerator.generateJsonReport(migrations, true);
             } catch (Exception e) {
                 log.error("Batch migration failed. Rolling back all changes.", e);
-                try {
-                    connection.rollback();
-                } catch (SQLException exception) {
-                    log.error("Error during rollback.");
-                }
+                rollbackTransaction(connection);
                 throw new MigrationException("Batch migration process failed.", e);
             }
         } catch (SQLException e) {
             log.error("Database connection error during migration.", e);
             throw new MigrationException("Error during batch migration process.", e);
+        }
+    }
+
+    /**
+     * Executes the rollback of migrations to the specified version.
+     * This method goes through the list of applied migrations and rolls them back
+     * in reverse order (starting from the most recent one), until the specified
+     * target version is reached. All SQL rollback statements are executed,
+     * and schema history is updated accordingly. If an error occurs,
+     * the transaction is rolled back.
+     *
+     * @param targetVersion the version to which migrations should be rolled back
+     * @throws MigrationException if there is an error executing the rollback or updating schema history
+     */
+    public void rollbackMigrationToVersion(String targetVersion) throws MigrationException {
+        log.info("Starting rollback to version: {}", targetVersion);
+
+        List<AppliedMigration> appliedMigrations = migrationManager.getAppliedMigrations();
+
+        List<AppliedMigration> migrationsToRollback = appliedMigrations.stream()
+                .filter(m -> MigrationVersionComparator
+                        .compareVersions(m.getVersion(), targetVersion) > 0)
+                .sorted(new MigrationVersionComparator().reversed())
+                .toList();
+
+        if (migrationsToRollback.isEmpty()) {
+            log.info("No migrations to rollback.");
+            return;
+        }
+
+        try (Connection connection = ConnectionManager.getConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                lockSchemaHistoryTable(connection);
+
+                for (AppliedMigration migration : migrationsToRollback) {
+                    rollbackSingleMigration(connection, migration);
+                }
+
+                connection.commit();
+                log.info("Rollback completed successfully.");
+            } catch (Exception e) {
+                log.error("Rollback failed. Rolling back all changes.", e);
+                rollbackTransaction(connection);
+                throw new MigrationException("Rolling back process failed.", e);
+            }
+        } catch (Exception e) {
+            log.error("Rollback failed. Rolling back all changes.", e);
+            throw new MigrationException("Rollback process failed.", e);
         }
     }
 
@@ -75,44 +130,6 @@ public class MigrationExecutor {
 
         insertSchemaHistory(connection, migration);
         log.info("Migration completed successfully for file: {}", migration.getDescription());
-    }
-
-    public void rollbackMigrationToVersion(String targetVersion) throws MigrationException {
-        log.info("Starting rollback to version: {}", targetVersion);
-
-        List<AppliedMigration> appliedMigrations = migrationManager.getAppliedMigrations();
-
-        List<AppliedMigration> migrationsToRollback = appliedMigrations.stream()
-                .filter(m -> MigrationVersionComparator
-                        .compareVersions(m.getVersion(), targetVersion) > 0)
-                .sorted(new MigrationVersionComparator().reversed())
-                .toList();
-
-        if (migrationsToRollback.isEmpty()) {
-            log.info("No migrations to rollback.");
-            return;
-        }
-
-        try (Connection connection = ConnectionManager.getConnection()) {
-            connection.setAutoCommit(false);
-
-            lockSchemaHistoryTable(connection);
-
-            for (AppliedMigration migration : migrationsToRollback) {
-                rollbackSingleMigration(connection, migration);
-            }
-
-            connection.commit();
-            log.info("Rollback completed successfully.");
-        } catch (Exception e) {
-            log.error("Rollback failed. Rolling back all changes.", e);
-            try (Connection connection = ConnectionManager.getConnection()) {
-                connection.rollback();
-            } catch (SQLException exception) {
-                log.error("Error during rollback.");
-            }
-            throw new MigrationException("Rollback process failed.", e);
-        }
     }
 
     private void rollbackSingleMigration(Connection connection, AppliedMigration appliedMigration) throws MigrationException {
@@ -186,6 +203,15 @@ public class MigrationExecutor {
         } catch (SQLException e) {
             log.error("Error acquiring lock on schema history table", e);
             throw new SchemaLockException("Error acquiring lock on schema history table", e);
+        }
+    }
+
+    private void rollbackTransaction(Connection connection) {
+        try {
+            connection.rollback();
+            log.info("Rollback successful.");
+        } catch (SQLException e) {
+            log.error("Error during rollback.", e);
         }
     }
 }

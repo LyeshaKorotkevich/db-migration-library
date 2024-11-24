@@ -7,6 +7,10 @@ import lombok.ToString;
 
 import java.util.List;
 
+/**
+ * Represents a migration, that should be applied, with SQL statements to be executed.
+ * This class extends from {@link BaseMigration} and adds the SQL statements
+ */
 @Getter
 @ToString(exclude = "sqlStatements")
 @EqualsAndHashCode(callSuper = true)

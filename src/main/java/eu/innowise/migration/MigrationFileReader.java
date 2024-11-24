@@ -17,13 +17,30 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
 
+/**
+ * Class responsible for reading migration files from the resources folder.
+ */
 @Slf4j
 public class MigrationFileReader {
 
+    /**
+     * Finds migration SQL files in the resources folder that start with the migration prefix defined in the constants(V).
+     *
+     * @return a list of {@link Migration} objects representing the migration files
+     * @throws IOException if there is an I/O error while accessing the files
+     * @throws URISyntaxException if the resource URL cannot be converted to a URI
+     */
     public List<Migration> findMigrationFilesInResources() throws IOException, URISyntaxException {
         return findFilesInResources(Constants.MIGRATION_PREFIX);
     }
 
+    /**
+     * Finds rollback SQL files in the resources folder that start with the rollback prefix defined in the constants(U).
+     *
+     * @return a list of {@link Migration} objects representing the rollback files
+     * @throws IOException if there is an I/O error while accessing the files
+     * @throws URISyntaxException if the resource URL cannot be converted to a URI
+     */
     public List<Migration> findRollbackFilesInResources() throws IOException, URISyntaxException {
         return findFilesInResources(Constants.ROLLBACK_PREFIX);
     }
